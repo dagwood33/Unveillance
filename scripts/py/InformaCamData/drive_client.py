@@ -47,7 +47,7 @@ class DriveClient(InformaCamDataClient):
 
 			print "files absorbed: %d" % len(self.files_manifest)
 
-		except errors.httpError as e:
+		except errors.HttpError as e:
 			print e
 		
 		
@@ -107,7 +107,7 @@ class DriveClient(InformaCamDataClient):
 		'''
 		get all sharedToMe
 		'''
-		q = {'q' : 'sharedWithMe'}
+		q = {'q' : 'sharedWithMe and not trashed'}
 		try:
 			files = self.service.files().list(**q).execute()
 		except errors.HttpError as e:
@@ -143,7 +143,7 @@ class DriveClient(InformaCamDataClient):
 					print "registered %s" % clone['id']
 					sleep(2)
 				except errors.HttpError as e:
-					print e
+					print "HTTP ERROR: %s" % e
 					continue
 					
 				try:
@@ -153,7 +153,7 @@ class DriveClient(InformaCamDataClient):
 					print "deleted original file over %s" % f['id']
 					sleep(2)
 				except errors.HttpError as e:
-					print e
+					print "HTTP ERROR: %s" % e
 					continue
 				
 				assets.append(clone['id'])
@@ -162,6 +162,8 @@ class DriveClient(InformaCamDataClient):
 		return assets
 		
 	def isAbsorbed(self, file_name, mime_type):
+		if file_name is None or mime_type is None:
+			return False
 		# actually, if hash is already a file name
 		if self.mode == "sources":
 			if mime_type != mime_types['zip']:
@@ -171,8 +173,12 @@ class DriveClient(InformaCamDataClient):
 				return True
 		
 		for f in self.files_manifest:
-			if f['title'] == file_name:
-				return True
+			try:
+				if f['title'] == file_name:
+					return True
+			except TypeError as e:
+				print "type error: %s" % e
+				pass
 			
 		return False
 		
@@ -188,7 +194,12 @@ class DriveClient(InformaCamDataClient):
 			'visibility' : 'PUBLIC'
 		}
 		 
-		return self.service.properties().insert(fileId=file['id'], body=absorb).execute()
+		try:
+			return self.service.properties().insert(
+				fileId=file['id'], body=absorb).execute()
+		except errors.HttpError as e:
+			print "HTTP ERROR: %s" % e
+			return False
 		
 	def getFileName(self, file):
 		if type(file) is str or type(file) is unicode:

@@ -90,12 +90,6 @@ class Collection(tornado.web.RequestHandler):
 			
 			if not hasattr(collection, "invalid"):
 				res.data = collection.emit()
-				
-				if hasattr(collection, 'j3m'):
-					res.data['primary_j3m'] = collection.j3m.emit()
-				else:
-					print "NO primary j3m?"
-
 				res.result = 200
 			else:
 				res.reason = collection.invalid
@@ -287,11 +281,18 @@ class MediaHandler(tornado.web.RequestHandler):
 		f.close()
 		
 class J3MHandler(tornado.web.RequestHandler):
-	def initialize(self, _id):
+	def initialize(self, type, _id):
 		self._id = _id
+		self.type = type
 		
-	def get(self, _id):
-		submission = ICSubmission(_id=_id)
+	def get(self, type, _id):
+		if type == "submission":
+			submission = ICSubmission(_id=_id)
+		elif type == "collection":
+			submission = ICCollection(_id=_id)
+			if hasattr(submission, "merge_j3ms") and submission.merge_j3ms:
+				submission.mergeJ3M()
+			
 		try:
 			self.finish(submission.j3m.emit())
 		except:
@@ -331,7 +332,7 @@ routes = [
 	(r"/sources/", Sources),
 	(r"/source/([a-zA-Z0-9]{32})/", Source, dict(_id=None)),
 	(r"/submission/([a-zA-Z0-9]{32})/media/(low|med|high|thumb|orig)/", MediaHandler, dict(_id=None, resolution=None)),
-	(r"/submission/([a-zA-Z0-9]{32})/j3m/", J3MHandler, dict(_id=None)),
+	(r"/(submission|collection)/([a-zA-Z0-9]{32})/j3m/", J3MHandler, dict(type=None, _id=None)),
 	(r"/collections/", Collections),
 	(r"/collection/([a-zA-Z0-9]{32})/", Collection, dict(_id=None)),
 	(r"/ictd/", GenerateICTD),

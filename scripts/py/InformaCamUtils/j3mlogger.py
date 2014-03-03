@@ -84,7 +84,9 @@ class J3MLogger():
 		
 		inflate = {
 			'_id' : submission._id,
-			'asset_path' : self.asset_path
+			'asset_path' : self.asset_path,
+			'merge_j3ms' : True,
+			'is_locked' : True
 		}
 		
 		if len(media) > 0:

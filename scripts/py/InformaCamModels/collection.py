@@ -16,6 +16,27 @@ class Collection(Asset):
 		if hasattr(self, "j3m_id") and self.j3m_id is not None:
 			self.j3m = J3M(_id=self.j3m_id)
 	
+	def mergeJ3M(self):
+		from submission import Submission
+		if not hasattr(self, "attached_media"):
+			return
+			
+		if not hasattr(self, "j3m"):
+			self.j3m = dict(data={"sensorCapture" : []})
+		
+		for s in self.attached_media:
+			sub = Submission(_id=s)			
+			self.j3m.data['sensorCapture'].extend(sub.j3m.data['sensorCapture'])
+			
+			'''
+			try:
+				self.j3m.data['exif'].extend(sub.j3m.data['exif'])
+			except:
+				try:
+					self.j3m.data['exif'] = sub.j3m.data['exif']
+				except KeyError as e: pass
+			'''
+	
 	def massageData(self, inflate):
 		try:
 			submissions = inflate['attached_media']
